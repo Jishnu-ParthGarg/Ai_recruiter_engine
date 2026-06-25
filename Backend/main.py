@@ -2,7 +2,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 
-from Backend.recruiter_engine import get_top_candidates
+from recruiter_engine import get_top_candidates
 
 app = FastAPI(title="AI Recruiter API")
 
