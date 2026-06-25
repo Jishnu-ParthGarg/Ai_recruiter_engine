@@ -1,0 +1,301 @@
+import json
+
+def technical_score(features):
+    score = 0
+
+    # Experience
+    years = features.get("years_experience", 0)
+
+    if 4 <= years < 5:
+        score += 10
+    elif 5 <= years <= 9:
+        score += 15 + (years - 5)
+    elif 9 < years <= 12:
+        score += 20
+
+    # Machine Learning Experience
+    if features.get("has_ml", False):
+        score += 10
+
+    # Retrieval / Recommendation / Search Experience
+    if features.get("has_retrieval_experience", False):
+        score += 20
+
+    # Leadership Experience
+    if features.get("has_leadership", False):
+        score += 5
+
+    return score
+
+def behavioral_score(features):
+    score = 0
+
+    # Open to Work
+    if features.get("open_to_work", False):
+        score += 5
+
+    # Recruiter Response Rate
+    response_rate = features.get("response_rate", 0)
+    score += response_rate * 10
+
+    # Interview Completion Rate
+    interview_completion = features.get("interview_completion", 0)
+
+    if interview_completion >= 0.8:
+        score += 5
+
+    # Recruiter Interest
+    saved_by_recruiters = features.get("saved_by_recruiters", 0)
+
+    if saved_by_recruiters >= 10:
+        score += 5
+    elif saved_by_recruiters >= 5:
+        score += 3
+
+    return score
+
+def logistics_score(features):
+    score = 0
+
+    # Notice Period
+    notice_period = features.get("notice_period", 180)
+
+    if notice_period <= 30:
+        score += 5
+    elif notice_period <= 60:
+        score += 3
+
+    return score
+
+def penalty_score(features):
+    penalty = 0
+
+    # Consulting-only candidates
+    if features.get("consulting_only", False):
+        penalty += 20
+
+    return penalty
+#=========================================
+
+
+# ==========================================
+# Load Candidate Features
+# ==========================================
+
+print("Loading candidate features...")
+
+with open("candidate_features.json", "r") as f:
+    candidate_features = json.load(f)
+
+print("Total candidates loaded:", len(candidate_features))
+
+# ==========================================
+# Score Candidates
+# ==========================================
+
+candidate_scores = []
+
+print("Scoring candidates...")
+
+for features in candidate_features:
+
+    tech = technical_score(features)
+
+    behavior = behavioral_score(features)
+
+    logistics = logistics_score(features)
+
+    penalty = penalty_score(features)
+
+    final_score = (
+        tech
+        + behavior
+        + logistics
+        - penalty
+    )
+
+    candidate_scores.append({
+      "candidate_id": features["candidate_id"],
+        "technical_score": tech,
+        "behavioral_score": behavior,
+        "logistics_score": logistics,
+        "penalty_score": penalty,
+        "final_score": final_score
+    })
+    
+
+print("Scoring completed.")
+def role_alignment_score(features):
+    score = 0
+
+    title = features.get(
+        "current_title",
+        ""
+    ).lower()
+
+    relevant_titles = [
+        "ml engineer",
+        "machine learning engineer",
+        "ai engineer",
+        "nlp engineer",
+        "data scientist",
+        "recommendation systems engineer",
+        "search engineer",
+        "research engineer"
+    ]
+
+    partially_relevant_titles = [
+        "software engineer",
+        "backend engineer",
+        "data engineer",
+        "java developer"
+    ]
+
+    irrelevant_titles = [
+        "customer support",
+        "content writer",
+        "business analyst",
+        "marketing"
+    ]
+
+    if any(
+        keyword in title
+        for keyword in relevant_titles
+    ):
+        score += 15
+
+    elif any(
+        keyword in title
+        for keyword in partially_relevant_titles
+    ):
+        score += 5
+
+    elif any(
+        keyword in title
+        for keyword in irrelevant_titles
+    ):
+        score -= 20
+
+    return score
+
+#==========================================
+
+#==========================================
+def is_valid_role(features):
+    title = features.get("current_title", "").lower()
+
+    reject_titles = [
+        "customer support",
+        "content writer",
+        "business analyst",
+        "marketing"
+    ]
+
+    return not any(t in title for t in reject_titles)
+for features in candidates:
+    # ... other code ...
+    
+    if not is_valid_role(features):
+        continue   # skip candidate entirely
+
+# ==========================================
+# Rank Candidates
+# ==========================================
+
+candidate_scores.sort(
+    key=lambda x: x["final_score"],
+    reverse=True
+)
+
+# ==========================================
+# Display Top 10
+# ==========================================
+
+print("\nTop 10 Candidates:\n")
+
+for candidate in candidate_scores[:10]:
+    print(
+        f"ID: {candidate['candidate_id']}, "
+        f"Final: {candidate['final_score']:.2f}, "
+        f"Tech: {candidate['technical_score']:.2f}, "
+        f"Behavior: {candidate['behavioral_score']:.2f}, "
+        f"Logistics: {candidate['logistics_score']:.2f}, "
+        f"Penalty: {candidate['penalty_score']:.2f}"
+    )
+# ==========================================
+# Score Statistics
+# ==========================================
+
+scores = [
+    candidate["final_score"]
+    for candidate in candidate_scores
+]
+
+print("\nScore Statistics:")
+print("Highest Score:", max(scores))
+print("Lowest Score:", min(scores))
+print("Average Score:", round(sum(scores) / len(scores), 2))
+
+# ==========================================
+# Save Scores
+# ==========================================
+
+with open("candidate_scores.json", "w") as f:
+    json.dump(candidate_scores, f, indent=2)
+
+print("\nScores saved successfully.")
+print("Output file: candidate_scores.json")
+print("\nTop Candidate Details:\n")
+
+top_ids = {
+    candidate["candidate_id"]
+    for candidate in candidate_scores[:10]
+}
+
+feature_lookup = {
+    feature["candidate_id"]: feature
+    for feature in candidate_features
+}
+
+for candidate in candidate_scores[:10]:
+    cid = candidate["candidate_id"]
+
+    print("=" * 80)
+    print(f"Candidate ID: {cid}")
+
+    print(
+        f"Final Score: {candidate['final_score']:.2f}"
+    )
+
+    features = feature_lookup[cid]
+
+    print(
+        "Years Experience:",
+        features["years_experience"]
+    )
+
+    print(
+        "Current Title:",
+        features["current_title"]
+    )
+
+    print(
+        "Industry:",
+        features["industry"]
+    )
+
+    print(
+        "Open To Work:",
+        features["open_to_work"]
+    )
+
+    print(
+        "Notice Period:",
+        features["notice_period"]
+    )
+
+    print(
+        "Skills:",
+        features["skill_names"]
+    )
+
