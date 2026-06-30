@@ -1,11 +1,11 @@
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 
-from .models import (
+from models import (
     CandidateRequest,
     RankingResponse,
 )
-from .recruiter_engine import get_top_candidates
+from recruiter_engine import get_top_candidates
 
 
 app = FastAPI(
