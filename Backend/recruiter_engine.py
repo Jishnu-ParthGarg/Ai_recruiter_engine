@@ -13,10 +13,12 @@ PROFILE_WEIGHT = 0.20
 JD_WEIGHT = 0.80
 
 BASE_DIR = Path(__file__).resolve().parent
+ROOT_DIR = BASE_DIR.parent
 
 POSSIBLE_DATA_FILES = [
     BASE_DIR / "scored_candidates.json",
-    BASE_DIR.parent / "scored_candidates.json",
+    ROOT_DIR / "scored_candidates.json",
+    ROOT_DIR / "Backend" / "scored_candidates.json",
 ]
 
 
