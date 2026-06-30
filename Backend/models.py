@@ -1,66 +1,26 @@
-# models.py
-
-from pydantic import BaseModel, Field
+from pydantic import BaseModel
 from typing import List
 
 
-# =====================================
-# REQUEST
-# =====================================
+class Candidate(BaseModel):
+    candidate_id: str
+    current_title: str
+    years_experience: float
+    location: str
 
-class CandidateRequest(BaseModel):
+    skills: List[str]
 
-    job_description: str = Field(
-        ...,
-        min_length=1
-    )
+    jd_score: float
+    profile_score: float
+    final_score: float
 
-    top_k: int = Field(
-        default=10,
-        ge=1,
-        le=100
-    )
+    matched_skills: List[str]
+    missing_skills: List[str]
 
-
-# =====================================
-# CANDIDATE RESPONSE
-# =====================================
-
-class CandidateResponse(BaseModel):
-
-    candidate_id: str = ""
-
-    current_title: str = ""
-
-    years_experience: float = 0
-
-    industry: str = ""
-
-    location: str = ""
-
-    skill_names: List[str] = []
-
-    profile_score: float = 0
-
-    jd_score: float = 0
-
-    final_score: float = 0
-
-    matched_skills: List[str] = []
-
-    missing_skills: List[str] = []
-
-    explanation: str = ""
+    explanation: str
 
 
-# =====================================
-# API RESPONSE
-# =====================================
-
-class RankingResponse(BaseModel):
-
+class RankResponse(BaseModel):
     success: bool
-
     count: int
-
-    top_candidates: List[CandidateResponse]
+    top_candidates: List[Candidate]

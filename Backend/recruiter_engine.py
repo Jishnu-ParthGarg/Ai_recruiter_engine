@@ -4,7 +4,6 @@ import json
 import re
 from typing import Dict, Set
 
-
 # =====================================================
 # CONFIG
 # =====================================================
@@ -14,16 +13,10 @@ JD_WEIGHT = 0.80
 
 BASE_DIR = Path(__file__).resolve().parent
 
-
-# =====================================================
-# DATA PATH (CLEAN + SAFE)
-# =====================================================
-
 DATA_PATHS = [
     BASE_DIR / "scored_candidates.json",
     BASE_DIR.parent / "scored_candidates.json",
 ]
-
 
 # =====================================================
 # SKILL TAXONOMY
@@ -45,7 +38,6 @@ ALIASES = {
     "vector db": "vector database",
 }
 
-
 SEMANTIC_MAP = {
     "machine learning": {"tensorflow", "pytorch", "scikit-learn", "deep learning"},
     "statistics": {"pandas", "numpy", "data science"},
@@ -53,14 +45,12 @@ SEMANTIC_MAP = {
     "frontend": {"react", "javascript", "html", "css"},
 }
 
-
 # =====================================================
-# LOAD DATA (FIXED ONCE ONLY)
+# LOAD DATA
 # =====================================================
 
 @lru_cache(maxsize=1)
 def load_candidates():
-
     for path in DATA_PATHS:
         if path.exists():
             with open(path, "r", encoding="utf-8") as f:
@@ -72,7 +62,6 @@ def load_candidates():
             return data
 
     raise RuntimeError(f"Dataset not found in: {DATA_PATHS}")
-
 
 # =====================================================
 # JD PARSER
@@ -87,7 +76,6 @@ def extract_jd_requirements(job_description: str) -> Set[str]:
     detected = set()
 
     for skill in MASTER_SKILLS:
-
         normalized = ALIASES.get(skill, skill)
 
         if " " in skill:
@@ -99,15 +87,14 @@ def extract_jd_requirements(job_description: str) -> Set[str]:
 
     return detected
 
-
 # =====================================================
-# SCORING ENGINE
+# JD MATCHER
 # =====================================================
 
 def calculate_jd_score(candidate: Dict, requirements: Set[str]):
 
     if not requirements:
-        return 5.0, [], list(requirements)
+        return 0.0, [], []
 
     skills = set(map(str.lower, candidate.get("skill_names", [])))
 
@@ -134,19 +121,18 @@ def calculate_jd_score(candidate: Dict, requirements: Set[str]):
 
     return round(score, 2), list(matched), list(missing)
 
-
 # =====================================================
-# MAIN ENGINE (STABLE + LINKEDIN STYLE)
+# MAIN ENGINE (FINAL FIXED CONTRACT)
 # =====================================================
 
 def get_top_candidates(job_description: str, top_k: int = 10):
 
     candidates = load_candidates()
-
     jd_text = (job_description or "").lower()
+
     requirements = extract_jd_requirements(job_description)
 
-    # fallback safety
+    # fallback prevents empty JD crash
     if not requirements:
         requirements = {"python", "javascript"}
 
@@ -171,17 +157,15 @@ def get_top_candidates(job_description: str, top_k: int = 10):
         if ("rag" in jd_text or "llm" in jd_text) and c.get("has_retrieval_experience"):
             role_boost += 10
 
-        final_score = (
-            (jd_score ** 1.1) * JD_WEIGHT +
-            profile * PROFILE_WEIGHT +
-            role_boost
-        )
+        final_score = (jd_score ** 1.1) * JD_WEIGHT + profile * PROFILE_WEIGHT + role_boost
 
         ranked.append({
-            "candidate_id": c.get("candidate_id", "UNKNOWN"),
-            "title": c.get("current_title", ""),
+            "candidate_id": c.get("candidate_id", ""),
+            "current_title": c.get("current_title", "Unknown Title"),
+            "years_experience": float(c.get("years_experience", 0)),
+            "location": c.get("location", "N/A"),
+
             "skills": c.get("skill_names", []),
-            "skill_names": c.get("skill_names", []),
 
             "jd_score": jd_score,
             "profile_score": profile,
@@ -189,35 +173,10 @@ def get_top_candidates(job_description: str, top_k: int = 10):
 
             "matched_skills": matched,
             "missing_skills": missing,
+
             "explanation": f"Matched {len(matched)}/{len(requirements)} skills"
         })
 
     ranked.sort(key=lambda x: x["final_score"], reverse=True)
 
-    # diversity filter
-    final = []
-    seen = set()
-
-    for r in ranked:
-        key = tuple(sorted(r["matched_skills"][:2]))
-        if key not in seen:
-            final.append(r)
-            seen.add(key)
-        if len(final) == top_k:
-            break
-
-    return final
-
-
-# =====================================================
-# TEST
-# =====================================================
-
-if __name__ == "__main__":
-
-    jd = "AI Engineer Python Machine Learning RAG LangChain"
-
-    results = get_top_candidates(jd, 5)
-
-    for r in results:
-        print(r["candidate_id"], r["final_score"], r["skills"])
+    return ranked[:top_k]
