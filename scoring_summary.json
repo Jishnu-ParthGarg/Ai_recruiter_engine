@@ -1,8 +1,0 @@
-{
-  "total_candidates": 100000,
-  "selected_candidates": 61579,
-  "rejected_candidates": 38421,
-  "honeypot_rejections": 0,
-  "role_rejections": 17001,
-  "low_score_rejections": 21420
-}
