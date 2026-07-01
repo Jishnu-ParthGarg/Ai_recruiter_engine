@@ -1,69 +1,203 @@
-# AI Recruiter System
+# 🤖 AI Recruiter System
 
-An intelligent candidate ranking platform that matches job descriptions to candidates using LLM-powered skill extraction. Paste a job description, and the system parses real technical requirements, scores every candidate in the database against them, and returns a ranked shortlist with matched/missing skills.
+An AI-powered candidate ranking platform that turns a job description into an explainable, ranked shortlist — combining LLM-based requirement extraction with multi-signal candidate scoring.
 
-🔗 **Live demo:** [(https://ai-recruiter-engine-void-main.vercel.app/)](https://ai-recruiter-engine-void-main.vercel.app/)
-🔗 **API:** [test2-ox8y.onrender.com](https://test2-ox8y.onrender.com)
+Unlike traditional ATS systems that rely on keyword filtering alone, this system combines:
+
+- 🧠 LLM-powered job description understanding
+- 📊 Multi-dimensional candidate evaluation
+- 👥 Behavioral and recruiter-interaction signals
+- ⚖️ Business-rule-aware ranking (soft penalties, not hard rejections)
+- 🔍 Explainable, recruiter-readable recommendations
 
 ---
 
-## How it works
+## 🔗 Live Demo
 
-1. The user pastes a job description into the frontend.
-2. The backend sends it to an LLM (via [Groq](https://groq.com), running Llama 3.1) to extract real technical skills, role, and seniority — explicitly filtering out vague terms like "general."
-3. Every candidate in the dataset is scored against the extracted requirements, combining:
-   - **JD match score** (70%) — overlap between required skills and candidate skills
-   - **Profile score** (30%) — the candidate's overall pre-computed profile strength
-   - **Role-based boosts** — small bonuses for relevant titles (e.g. frontend/backend/ML signals)
-4. Results are ranked, deduplicated, and the top K candidates are returned with their matched and missing skills.
+| | |
+|---|---|
+| **Frontend** | [ai-recruiter-engine.vercel.app](https://ai-recruiter-engine.vercel.app/) |
+| **Backend API** | [test2-ox8y.onrender.com](https://test2-ox8y.onrender.com) |
+| **API Docs** | [test2-ox8y.onrender.com/docs](https://test2-ox8y.onrender.com/docs) |
 
-### Built-in fallbacks
+---
 
-The system is designed to degrade gracefully rather than fail silently:
+## Table of Contents
+
+- [How It Works](#-how-it-works)
+- [Features](#-features)
+- [Ranking Methodology](#-ranking-methodology)
+- [Fallback Strategy](#-built-in-fallback-strategy)
+- [Results & Performance](#-results--performance)
+- [Tech Stack](#-tech-stack)
+- [Project Structure](#-project-structure)
+- [Running Locally](#-running-locally)
+- [API Reference](#-api-reference)
+- [Submission Assets](#-submission-assets)
+
+---
+
+## ⚙️ How It Works
+
+```text
+Job Description
+      │
+      ▼
+LLM Requirement Extraction   (skills, role, seniority, domain)
+      │
+      ▼
+Candidate Feature Extraction (technical, behavioral, logistics, career, risk)
+      │
+      ▼
+Candidate Scoring + Business Rules
+      │
+      ▼
+JD Matching + Final Ranking
+      │
+      ▼
+Explainability Layer  →  FastAPI  →  React Frontend
+```
+
+1. **Recruiter submits a job description.**
+2. **LLM extracts requirements** — skills, role, seniority, domain.
+3. **Every candidate is evaluated** across technical, behavioral, logistics, career, and risk signals.
+4. **JD matching** computes skill overlap, experience match, leadership match, and role alignment.
+5. **Ranking** combines profile score + JD match score − business penalties.
+6. **Explainability generation** returns a recruiter-readable rationale for each result.
+
+---
+
+## ✨ Features
+
+### 🧠 AI-Powered Job Description Understanding
+
+Uses **Llama 3.1 via Groq** to extract recruiter intent — technical skills, role requirements, seniority, domain expertise, and leadership expectations.
+
+**Example**
+
+> Input: *"Senior Retrieval Engineer with Python and Vector Search"*
+> Extracted: Python · Machine Learning · Retrieval Systems · Vector Search · Information Retrieval · Leadership Experience
+
+### 📊 Multi-Signal Candidate Evaluation
+
+| Category | Signals |
+|---|---|
+| 💻 Technical | Python/ML/retrieval/vector-DB expertise, leadership indicators, skill diversity |
+| 👥 Behavioral | Open-to-work status, recruiter response rate, interview completion, recruiter engagement |
+| 📅 Logistics | Notice period, availability |
+| 💼 Career | Years of experience, current role, industry, career progression |
+| 🚩 Risk | Honeypot detection, consulting-only profiles, suspicious patterns |
+
+### 🔍 Explainable AI Ranking
+
+Every candidate gets a plain-language rationale, e.g.:
+
+> *"Candidate demonstrates strong technical fit, high recruiter engagement, good alignment with the target role, and favorable notice period."*
+
+### ⚖️ Business Rule Engine
+
+Applies **soft penalties** rather than hard rejections (e.g. for consulting-only profiles or weak role alignment), preserving candidate diversity in the shortlist.
+
+---
+
+## 🎯 Ranking Methodology
+
+```text
+Final Score =
+    Technical Score
+  + Behavioral Score
+  + Logistics Score
+  + Role Alignment Score
+  + JD Matching Score
+  − Honeypot Penalty
+  − Consulting Penalty
+```
+
+| Component | Measures |
+|---|---|
+| **Technical Score** | Experience, ML/retrieval/vector-DB expertise, leadership |
+| **Behavioral Score** | Recruiter response rate, open-to-work signal, interview completion, recruiter saves |
+| **Logistics Score** | Notice period, availability |
+| **Role Alignment Score** | Candidate title/experience vs. target role (e.g. ML Engineer, AI Engineer, NLP Engineer, Search Engineer, Applied Scientist) |
+| **Penalty Score** | Honeypot detection, consulting penalties, weak alignment, low experience |
+
+---
+
+## 🛡️ Built-in Fallback Strategy
+
+The system degrades gracefully instead of failing outright:
 
 | Situation | Behavior |
 |---|---|
-| LLM extraction succeeds | Full skill/role/seniority extraction |
-| LLM unavailable or returns nothing | Falls back to keyword matching against a known skills list |
-| JD is too vague for keywords (e.g. "Frontend Developer") | Falls back to a role → baseline-skills mapping |
-| Nothing can be extracted at all | Returns top candidates by general profile strength, flagged so the UI shows an informational note instead of a hard error |
+| ✅ LLM extraction succeeds | Full requirement extraction |
+| ⚠️ LLM unavailable | Keyword-based extraction fallback |
+| ⚠️ Generic JD (e.g. "Frontend Developer") | Role → baseline-skills mapping |
+| ❌ Nothing extracted | General candidate ranking, flagged in the UI |
 
 ---
 
-## Tech stack
+## 📈 Results & Performance
 
-**Backend**
-- FastAPI (Python)
-- [Groq](https://groq.com) (Llama 3.1 8B Instant) for job description parsing — OpenAI-compatible API
-- Deployed on [Render](https://render.com)
+**Dataset:** 61,579 candidate profiles, pre-scored on technical, behavioral, logistics, and role-fit dimensions.
 
-**Frontend**
-- React + Vite
-- Axios for API calls
-- Deployed on [Vercel](https://vercel.com)
+**Example query:** *"Senior Retrieval Engineer with Python and Vector Search"*
+
+| Candidate | Final Score |
+|---|---|
+| CAND_0002025 | 135.95 |
+| CAND_0025640 | 133.80 |
+| CAND_0046064 | 132.45 |
+| CAND_0072660 | 131.55 |
+| CAND_0079387 | 130.45 |
+
+**Runtime**
+
+| Stage | Complexity |
+|---|---|
+| Feature extraction | O(N) |
+| Candidate scoring | O(N) |
+| Business rules | O(N) |
+| Ranking | O(N log N) |
+
+Average end-to-end response time (JD parsing + matching + ranking): **< 1 second**, running on CPU only — no GPU required, standard laptop hardware, low memory overhead.
 
 ---
 
-## Project structure
+## 🛠️ Tech Stack
 
-```
+**Backend** — Python, FastAPI, Groq API (Llama 3.1), JSON/Gzip storage
+`json · gzip · re · typing · pathlib · fastapi · uvicorn · pydantic`
+
+**Frontend** — React, Vite, Axios
+
+**Deployment** — Render (backend), Vercel (frontend)
+
+---
+
+## 📂 Project Structure
+
+```text
 Backend/
-├── main.py                 # FastAPI app, routes, request/response models
-├── recruiter_engine.py     # Scoring engine, skill extraction fallback chain
-├── llm_job_parser.py       # Groq API integration for JD parsing
-├── scored_candidates.json  # Candidate dataset
+├── ranked.py
+├── recruiter_engine.py
+├── jd_parser.py
+├── main.py
+├── models.py
+├── scored_candidates.json
 └── requirements.txt
 
 Frontend/
 ├── src/
-│   ├── App.jsx              # Main UI: search form, results grid
-│   └── App.css
-└── package.json
+│   ├── App.jsx
+│   ├── App.css
+│   └── components/
+├── package.json
+└── vite.config.js
 ```
 
 ---
 
-## Running locally
+## 🚀 Running Locally
 
 ### Backend
 
@@ -76,8 +210,8 @@ pip install -r requirements.txt
 
 Create a `.env` file in `Backend/`:
 
-```
-GROQ_API_KEY=your-groq-key-here
+```env
+GROQ_API_KEY=your_groq_api_key
 ```
 
 Get a free key at [console.groq.com/keys](https://console.groq.com/keys) — no credit card required.
@@ -86,7 +220,8 @@ Get a free key at [console.groq.com/keys](https://console.groq.com/keys) — no 
 uvicorn main:app --reload --port 8080
 ```
 
-Visit `http://127.0.0.1:8080/docs` for interactive API docs, or `http://127.0.0.1:8080/health` to confirm the LLM client is connected.
+- Interactive API docs: `http://127.0.0.1:8080/docs`
+- Health check: `http://127.0.0.1:8080/health`
 
 ### Frontend
 
@@ -95,9 +230,9 @@ cd Frontend
 npm install
 ```
 
-Create a `.env` file in `Frontend/` to point at your local backend:
+Create a `.env` file in `Frontend/`:
 
-```
+```env
 VITE_BACKEND_URL=http://127.0.0.1:8080
 ```
 
@@ -107,11 +242,12 @@ npm run dev
 
 ---
 
-## API
+## 📡 API Reference
 
 ### `POST /rank_candidates`
 
-**Request body:**
+**Request**
+
 ```json
 {
   "job_description": "Backend developer with Python, SQL, and API experience",
@@ -120,7 +256,8 @@ npm run dev
 }
 ```
 
-**Response:**
+**Response**
+
 ```json
 {
   "success": true,
@@ -150,12 +287,21 @@ Returns whether the Groq client initialized successfully — useful for confirmi
 
 ---
 
-## Notes on the dataset
+## 📦 Submission Assets
 
-`scored_candidates.json` contains 66,000+ synthetic candidate profiles, each pre-scored on technical, behavioral, logistics, and role fit dimensions, used as the `profile_score` baseline that combines with live JD matching.
+- `ranked.py`
+- `recruiter_engine.py`
+- `jd_parser.py`
+- FastAPI backend
+- React frontend
+- `scored_candidates.json`
+- `top_candidates.json`
+- `submission.csv`
 
 ---
 
-## License
+## 🌟 Key Strengths
 
-MIT
+✅ Explainable AI ranking · ✅ Multi-signal candidate evaluation · ✅ Business rule engine · ✅ Soft filtering strategy · ✅ LLM-powered JD understanding · ✅ Full-stack implementation · ✅ Production-style architecture
+
+---
